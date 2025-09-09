@@ -55,7 +55,15 @@
             <div class="row">
                 <div class="col-md-3 border-end">
                     <div class="section-heading">Details of Student</div>
-
+                    <div class="mb-3">
+                        <asp:Label CssClass="form-label" Text="Admission Number:" runat="server" />
+                      <asp:DropDownList ID="ddlAdmissionNumber" 
+                          runat="server" 
+                          AutoPostBack="true"
+                          OnSelectedIndexChanged="ddlAdmissionNumber_SelectedIndexChanged"
+                          CssClass="form-select form-select-sm">
+                    </asp:DropDownList>
+                    </div>
                     <div class="mb-3">
                         <asp:Label CssClass="form-label" Text="First Name:" runat="server" />
                         <asp:TextBox ID="txtFirstName" runat="server" CssClass="form-control form-control-sm"></asp:TextBox>
@@ -393,16 +401,15 @@
             </div>
         </div>
                 </div>
-                                    <div class="section-heading">Additional Parameter</div>
+                <div class="section-heading">Additional Parameter</div>
                 <asp:PlaceHolder ID="paraform" runat="server"></asp:PlaceHolder>
 
                    <div class="form-group">
                     <asp:Button ID="btnSubmit" runat="server" Text="Submit" OnClick="btnSubmit_Click" Style="background-color: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 5px; margin-right: 8px;" />        
-                       <asp:Button ID="btnDelete" runat="server" Style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 5px; margin-right: 8px;" Text="Delete" />
+                       <asp:Button ID="btnDelete" runat="server" Style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 5px; margin-right: 8px;" Text="Delete" OnClick="btnDelete_Click" />
         </div>
             <asp:Label ID="lblMessage" runat="server" ForeColor="Red" Font-Bold="true"></asp:Label>
 
-              </form>
+    </form>
 </body>
 </html>
-

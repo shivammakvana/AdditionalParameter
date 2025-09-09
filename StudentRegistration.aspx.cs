@@ -19,6 +19,7 @@ namespace YourNamespace
         {
             if (!IsPostBack)
             {
+                BindAdmissionNumber();
                 BindReligion();
                 BindCasteCategory();
                 BindCaste();
@@ -26,10 +27,36 @@ namespace YourNamespace
                 BindClass();
                 BindBusRoute();
                 BindBusStop();
+
                 DynamicGroupsGeneration();
-
-
             }
+            else
+            {
+                DynamicGroupsGeneration();
+            }
+        }
+
+        private void BindAdmissionNumber()
+        {
+            string query = @"SELECT DISTINCT scholar_branch_registration_id 
+                     FROM scholar_register 
+                     WHERE TRIM(scholar_branch_registration_id) <> '' 
+                     ORDER BY scholar_branch_registration_id DESC";
+
+            using (MySqlConnection conn = new MySqlConnection(connStr)) 
+            using (MySqlCommand cmd = new MySqlCommand(query, conn))
+            {
+                conn.Open();
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    ddlAdmissionNumber.DataSource = reader;
+                    ddlAdmissionNumber.DataTextField = "scholar_branch_registration_id";
+                    ddlAdmissionNumber.DataValueField = "scholar_branch_registration_id";
+                    ddlAdmissionNumber.DataBind();
+                }
+            }
+
+            ddlAdmissionNumber.Items.Insert(0, new ListItem("----Select----", ""));
         }
 
         private void BindReligion()
@@ -157,6 +184,7 @@ namespace YourNamespace
        
         private void DynamicGroupsGeneration()
         {
+            paraform.Controls.Clear();
             using (MySqlConnection conn = new MySqlConnection(connStr))
             {
                 conn.Open();
@@ -337,6 +365,7 @@ namespace YourNamespace
                         {
                             long newRegId;
                             long SCID;
+
                             string queryRegister = @"INSERT INTO scholar_register(first_name, middle_name, last_name, date_of_birth, religion, date_of_admission,
                          father_name, mother_name, gaurdian_name, relation_with_student, occupation,address, phone, mobile, email_id, nationality, caste,
                          tc_received, cc_received, mc_received, marksheet_received, class_tenth_roll_no, class_tweelth_roll_no,
@@ -404,89 +433,99 @@ namespace YourNamespace
 
                                 cmd.ExecuteNonQuery();
                                 SCID = cmd.LastInsertedId;
-                            }
 
-                            string paramQuery = "SELECT SAPID, SPTID FROM scholar_additional_parameters";
-                            using (MySqlCommand cmd = new MySqlCommand(paramQuery, conn, transaction))
-                            using (MySqlDataReader reader = cmd.ExecuteReader())
-                            {
-                                var parameters = new List<(string sapid, string sptid)>();
-                                while (reader.Read())
+                                string paramQuery = "SELECT SAPID, SPTID FROM scholar_additional_parameters";
+                                using (MySqlCommand cmd2 = new MySqlCommand(paramQuery, conn, transaction))
+                                using (MySqlDataReader reader = cmd2.ExecuteReader())
                                 {
-                                    parameters.Add((reader["SAPID"].ToString(), reader["SPTID"].ToString()));
-                                }
-                                reader.Close();
-
-                                foreach (var (sapid, sptid) in parameters)
-                                {
-                                    string controlId = "input_" + sapid;
-                                    Control ctrl = paraform.FindControl(controlId);
-                                    if (ctrl == null) continue;
-
-                                    if (ctrl is TextBox txt)
+                                    var parameters = new List<(string sapid, string sptid)>();
+                                    while (reader.Read())
                                     {
-                                        using (MySqlCommand valCmd = new MySqlCommand(@"INSERT INTO scholar_additional_values (SCID, SAPID, para_value) VALUES (@SCID, @SAPID, @value);", conn, transaction))
-                                        {
-                                            valCmd.Parameters.AddWithValue("@SCID", SCID);
-                                            valCmd.Parameters.AddWithValue("@SAPID", sapid);
-                                            valCmd.Parameters.AddWithValue("@value", txt.Text.Trim());
-                                            valCmd.ExecuteNonQuery();
-                                        }
+                                        parameters.Add((reader["SAPID"].ToString(), reader["SPTID"].ToString()));
                                     }
-                                        
-                                    else if (ctrl is DropDownList ddl && !string.IsNullOrEmpty(ddl.SelectedValue))
-                                    {
-                                        long savid = GetOrCreateSAVID(SCID, sapid, conn, transaction);
-                                        long sapoid = GetSAPOID(sapid, ddl.SelectedItem.Text, conn, transaction);
+                                    reader.Close();
 
-                                        using (MySqlCommand optCmd = new MySqlCommand(@"INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, transaction))
-                                        {
-                                            optCmd.Parameters.AddWithValue("@SAVID", savid);
-                                            optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
-                                            optCmd.ExecuteNonQuery();
-                                        }
-                                    }
-                                    else if (ctrl is CheckBox chk && chk.Checked)
+                                    foreach (var (sapid, sptid) in parameters)
                                     {
-                                        long savid = GetOrCreateSAVID(SCID, sapid, conn, transaction);
-                                        long sapoid = GetSAPOID(sapid, "Yes", conn, transaction);
+                                        string controlId = "input_" + sapid;
+                                        Control ctrl = paraform.FindControl(controlId);
 
-                                        using (MySqlCommand optCmd = new MySqlCommand(@"INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, transaction))
+                                        if (ctrl == null)
                                         {
-                                            optCmd.Parameters.AddWithValue("@SAVID", savid);
-                                            optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
-                                            optCmd.ExecuteNonQuery();
+                                            System.Diagnostics.Debug.WriteLine("Control not found for SAPID: " + sapid);
+                                            continue;
                                         }
-                                    }
-                                    else if (ctrl is CheckBoxList chkList)
-                                    {
-                                        foreach (ListItem item in chkList.Items)
+
+
+                                        if (ctrl is TextBox txt && !string.IsNullOrWhiteSpace(txt.Text))
                                         {
-                                            if (item.Selected)
+                                            using (MySqlCommand valCmd = new MySqlCommand(
+                                                @"INSERT INTO scholar_additional_values (SCID, SAPID, para_value) 
+                                                 VALUES (@SCID, @SAPID, @value);", conn, transaction))
                                             {
-                                                long savid = GetOrCreateSAVID(SCID, sapid, conn, transaction);
-                                                long sapoid = GetSAPOID(sapid, item.Text, conn, transaction);
+                                                valCmd.Parameters.AddWithValue("@SCID", SCID);
+                                                valCmd.Parameters.AddWithValue("@SAPID", sapid);
+                                                valCmd.Parameters.AddWithValue("@value", txt.Text.Trim());
+                                                valCmd.ExecuteNonQuery();
+                                            }
+                                        }
 
-                                                using (MySqlCommand optCmd = new MySqlCommand(@"INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, transaction))
+                                        else if (ctrl is DropDownList ddl && !string.IsNullOrEmpty(ddl.SelectedValue))
+                                        {
+                                            long savid = GetOrCreateSAVID(SCID, sapid, conn, transaction);
+                                            long sapoid = GetSAPOID(sapid, ddl.SelectedItem.Text, conn, transaction);
+
+                                            using (MySqlCommand optCmd = new MySqlCommand(@"INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, transaction))
+                                            {
+                                                optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                                optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                                optCmd.ExecuteNonQuery();
+                                            }
+                                        }
+                                        else if (ctrl is CheckBox chk && chk.Checked)
+                                        {
+                                            long savid = GetOrCreateSAVID(SCID, sapid, conn, transaction);
+                                            long sapoid = GetSAPOID(sapid, "Yes", conn, transaction);
+
+                                            using (MySqlCommand optCmd = new MySqlCommand(@"INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, transaction))
+                                            {
+                                                optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                                optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                                optCmd.ExecuteNonQuery();
+                                            }
+                                        }
+                                        else if (ctrl is CheckBoxList chkList)
+                                        {
+                                            foreach (ListItem item in chkList.Items)
+                                            {
+                                                if (item.Selected)
                                                 {
-                                                    optCmd.Parameters.AddWithValue("@SAVID", savid);
-                                                    optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
-                                                    optCmd.ExecuteNonQuery();
+                                                    long savid = GetOrCreateSAVID(SCID, sapid, conn, transaction);
+                                                    long sapoid = GetSAPOID(sapid, item.Text, conn, transaction);
+
+                                                    using (MySqlCommand optCmd = new MySqlCommand(@"INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, transaction))
+                                                    {
+                                                        optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                                        optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                                        optCmd.ExecuteNonQuery();
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
 
-                            transaction.Commit();
-                            Response.Write("<script>alert('Submitted Successfully');</script>");
-                DynamicGroupsGeneration();
+                                transaction.Commit();
+                                Response.Write("<script>alert('Submitted Successfully');</script>");
+                                ClearForm();
+                                DynamicGroupsGeneration();
+                            }
                         }
                         catch (MySqlException ex)
                         {
+                            transaction.Rollback();
                             lblMessage.Text = "Database Error: " + ex.Message;
-                        }                      
+                        }
                     }
                 }
             }
@@ -495,6 +534,7 @@ namespace YourNamespace
                 lblMessage.Text = "Error: " + ex.Message;
             }
         }
+
         private long GetOrCreateSAVID(long SCID, string SAPID, MySqlConnection conn, MySqlTransaction transaction)
         {
             using (var checkCmd = new MySqlCommand(@"SELECT SAVID FROM scholar_additional_values WHERE SCID = @SCID AND SAPID = @SAPID;", conn, transaction))
@@ -528,7 +568,190 @@ namespace YourNamespace
 
             throw new Exception($"Option '{optionValue}' not found for SAPID {SAPID}");
         }
+        protected void ddlAdmissionNumber_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string admissionNo = ddlAdmissionNumber.SelectedValue;
+            if (!string.IsNullOrEmpty(admissionNo))
+            {
+                LoadStudentData(admissionNo);
+            }
+        }
+        
+        private void LoadStudentData(string admissionNo)
+        {
+            using (var conn = new MySqlConnection(connStr))
+            {
+                conn.Open();
 
+                string queryRegister = @"SELECT * from scholar_register where scholar_branch_registration_id = @AdmissionNo";
+                using (var cmd = new MySqlCommand(queryRegister, conn))
+                {
+                    cmd.Parameters.AddWithValue("@AdmissionNo", admissionNo);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            txtFirstName.Text = reader["first_name"].ToString();
+                            txtMiddleName.Text = reader["middle_name"].ToString();
+                            txtLastName.Text = reader["last_name"].ToString();
+                            txtDOB.Text = Convert.ToDateTime(reader["date_of_birth"]).ToString("yyyy-MM-dd");
+                            ddlReligion.SelectedValue = reader["religion"].ToString();
+                            txtDateAddmission.Text = Convert.ToDateTime(reader["date_of_admission"]).ToString("yyyy-MM-dd");
+                            txtFatherName.Text = reader["father_name"].ToString();
+                            txtMotherName.Text = reader["mother_name"].ToString();
+                            txtGuardianName.Text = reader["gaurdian_name"].ToString();
+                            txtRelation.Text = reader["relation_with_student"].ToString();
+                            txtOccupation.Text = reader["occupation"].ToString();
+                            txtAddress.Text = reader["address"].ToString();
+                            txtContactNo.Text = reader["phone"].ToString();
+                            txtMobile.Text = reader["mobile"].ToString();
+                            txtEmail.Text = reader["email_id"].ToString();
+                            txtNationality.Text = reader["nationality"].ToString();
+                            ddlCaste.SelectedValue = reader["caste"].ToString();
+                            txtClassX.Text = reader["class_tenth_roll_no"].ToString();
+                            txtClassXII.Text = reader["class_tweelth_roll_no"].ToString();
+                            ddlTransferCert.SelectedValue = reader["tc_received"].ToString();
+                            ddlCasteCert.SelectedValue = reader["cc_received"].ToString();
+                            ddlMigrationCert.SelectedValue = reader["mc_received"].ToString();
+                            ddlMarksheetCert.SelectedValue = reader["marksheet_received"].ToString();
+                            chkRTE.Checked = Convert.ToBoolean(reader["rte"]);
+                            ddlGender.SelectedValue = reader["gender"].ToString();
+                            ddlCasteCategory.SelectedValue = reader["caste_category"].ToString();
+                            chkMinority.Checked = Convert.ToBoolean(reader["minority"]);
+                            txtAadhar.Text = reader["aadhar_no"].ToString();
+                            chkBPL.Checked = Convert.ToBoolean(reader["BPL_category"]);
+                            chkDisabled.Checked = Convert.ToBoolean(reader["disabled"]);
+                            txtYearTerm.Text = reader["yot_adm"].ToString();
+                            txtAdmNo.Text = reader["scholar_branch_registration_id"].ToString();
+                        }
+                    }
+                }
+                string queryClass = @"SELECT * FROM scholar_class sc join scholar_register sr ON sr.registration_number = sc.scholar_registration_number
+                                    where sr.scholar_branch_registration_id = @AdmissionNo";
+                    
+                using (var cmd = new MySqlCommand(queryClass, conn))
+                {
+                    cmd.Parameters.AddWithValue("@AdmissionNo", admissionNo);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            ddlClass.SelectedValue = reader["class_id"].ToString();
+                            ddlSection.SelectedValue = reader["section"].ToString();
+                            txtYearTerm.Text = reader["year_of_term"].ToString();
+                            chkHostel.Checked = Convert.ToBoolean(reader["avail_hostel"]);
+                            txtHeight.Text = reader["height_in_cms"].ToString();
+                            txtWeight.Text = reader["weight_in_kgs"].ToString();
+                            txtRollNo.Text = reader["scholar_roll_number"].ToString();
+                        }
+                    }
+                }
+                string queryAdditional = @"SELECT sav.SAPID, sav.para_value, sao.option_value FROM scholar_additional_values sav
+                LEFT JOIN scholar_additional_val_option svo ON sav.SAVID = svo.SAVID
+                LEFT JOIN scholar_additional_param_option sao ON svo.SAPOID = sao.SAPOID
+                INNER JOIN scholar_class sc ON sav.SCID = sc.scholar_class_id
+                INNER JOIN scholar_register sr ON sc.scholar_registration_number = sr.registration_number
+                WHERE sr.scholar_branch_registration_id = @AdmissionNo";
+                using (var cmd = new MySqlCommand(queryAdditional, conn))
+                {
+                    cmd.Parameters.AddWithValue("@AdmissionNo", admissionNo);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                            while (reader.Read())
+                            {
+                                string sapid = reader["SAPID"].ToString();
+                                string value = reader["para_value"].ToString();
+                                string optionValue = reader["option_value"].ToString();
+
+                                string controlId = "input_" + sapid;
+                                Control ctrl = paraform.FindControl(controlId);
+
+                                if (ctrl is TextBox txt)
+                                    txt.Text = value;
+                                else if (ctrl is DropDownList ddl && !string.IsNullOrEmpty(optionValue))
+                                {
+                                    if (ddl.Items.FindByValue(optionValue) != null)
+                                        ddl.SelectedValue = optionValue;
+                                }
+                                else if (ctrl is CheckBox chk && optionValue == "Yes")
+                                    chk.Checked = true;
+                                else if (ctrl is CheckBoxList chkList)
+                                {
+                                    foreach (ListItem item in chkList.Items)
+                                    {
+                                        if (item.Text == optionValue)
+                                            item.Selected = true;
+                                    }
+                                }
+                            }
+                    }
+                }
+            }
+        }
+
+        private void ClearForm()
+        {
+            txtFirstName.Text = "";
+            txtMiddleName.Text = "";
+            txtLastName.Text = "";
+            txtDOB.Text = "";
+            txtDateAddmission.Text = "";
+            txtFatherName.Text = "";
+            txtMotherName.Text = "";
+            txtGuardianName.Text = "";
+            txtRelation.Text = "";
+            txtOccupation.Text = "";
+            txtAddress.Text = "";
+            txtContactNo.Text = "";
+            txtMobile.Text = "";
+            txtEmail.Text = "";
+            txtNationality.Text = "";
+            txtClassX.Text = "";
+            txtClassXII.Text = "";
+            txtAadhar.Text = "";
+            txtYearTerm.Text = "";
+            txtAdmNo.Text = "";
+            txtHeight.Text = "";
+            txtWeight.Text = "";
+            txtRollNo.Text = "";
+
+            ddlReligion.SelectedIndex = 0;
+            ddlCasteCategory.SelectedIndex = 0;
+            ddlCaste.SelectedIndex = 0;
+            ddlGender.SelectedIndex = 0;
+            ddlClass.SelectedIndex = 0;
+            ddlBusRoute.SelectedIndex = 0;
+            ddlBusStop.SelectedIndex = 0;
+            ddlSection.SelectedIndex = 0;
+            ddlTransferCert.SelectedIndex = 0;
+            ddlCasteCert.SelectedIndex = 0;
+            ddlMigrationCert.SelectedIndex = 0;
+            ddlMarksheetCert.SelectedIndex = 0;
+
+            chkRTE.Checked = false;
+            chkMinority.Checked = false;
+            chkBPL.Checked = false;
+            chkDisabled.Checked = false;
+            chkHostel.Checked = false;
+
+            paraform.Controls.Clear();
+          
+        }
+
+        protected void btnDelete_Click(object sender, EventArgs e)
+        {
+            using (var conn = new MySqlConnection(connStr))
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+
+
+                }
+            }
+        }
     }
 }
+
 

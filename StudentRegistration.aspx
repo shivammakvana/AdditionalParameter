@@ -1,4 +1,4 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="StudentRegistration.aspx.cs" Inherits="YourNamespace.StudentRegistration" %>
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="StudentRegistration.aspx.cs" Inherits="YourNamespace.StudentRegistration" %>
 
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -154,7 +154,7 @@
 
                     <div class="mb-3">
                         <asp:Label CssClass="form-label" Text="Year of Term:" runat="server" />
-                        <asp:TextBox ID="txtYearTerm" runat="server" CssClass="form-control form-control-sm" Text="2025-2026"></asp:TextBox>
+                        <asp:TextBox ID="txtYearTerm" runat="server" CssClass="form-control form-control-sm" ></asp:TextBox>
                     </div>
                 </div>
 
@@ -245,7 +245,7 @@
 
                 <div class="mb-3">
                     <asp:Label CssClass="form-label" Text="Date of Admission:" runat="server" />
-                    <asp:TextBox ID="txtDateAdmission" runat="server" CssClass="form-control form-control-sm" placeholder="DD/MM/YYYY"></asp:TextBox>
+                        <asp:TextBox ID="txtDateAddmission" runat="server" CssClass="form-control form-control-sm" placeholder="dd-mm-yyyy" TextMode="Date"></asp:TextBox>
                 </div>
 
                 <div class="mb-3">
@@ -396,7 +396,13 @@
                                     <div class="section-heading">Additional Parameter</div>
                 <asp:PlaceHolder ID="paraform" runat="server"></asp:PlaceHolder>
 
+                   <div class="form-group">
+                    <asp:Button ID="btnSubmit" runat="server" Text="Submit" OnClick="btnSubmit_Click" Style="background-color: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 5px; margin-right: 8px;" />        
+                       <asp:Button ID="btnDelete" runat="server" Style="background-color: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 5px; margin-right: 8px;" Text="Delete" />
+        </div>
+            <asp:Label ID="lblMessage" runat="server" ForeColor="Red" Font-Bold="true"></asp:Label>
 
-    </form>
+              </form>
 </body>
 </html>
+

@@ -5,10 +5,13 @@ using Org.BouncyCastle.Crypto.Agreement.Kdf;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
+using System.Transactions;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
+using static System.Collections.Specialized.BitVector32;
 
 namespace YourNamespace
 {
@@ -43,7 +46,7 @@ namespace YourNamespace
                      WHERE TRIM(scholar_branch_registration_id) <> '' 
                      ORDER BY scholar_branch_registration_id DESC";
 
-            using (MySqlConnection conn = new MySqlConnection(connStr)) 
+            using (MySqlConnection conn = new MySqlConnection(connStr))
             using (MySqlCommand cmd = new MySqlCommand(query, conn))
             {
                 conn.Open();
@@ -181,7 +184,7 @@ namespace YourNamespace
             }
             ddlBusStop.Items.Insert(0, new ListItem("-- Select Stop --", ""));
         }
-       
+
         private void DynamicGroupsGeneration()
         {
             paraform.Controls.Clear();
@@ -416,7 +419,7 @@ namespace YourNamespace
 
                             string queryClass = @"INSERT INTO scholar_class(scholar_registration_number, class_id, admission_date,
                          section, year_of_term, avail_hostel, height_in_cms, weight_in_kgs, scholar_roll_number)
-                    VALUES(@scholar_registration_number, @class_id, @admission_date,
+                        VALUES(@scholar_registration_number, @class_id, @admission_date,
                          @section, @year_of_term, @avail_hostel, @height_in_cms, @weight_in_kgs, @scholar_roll_number)";
 
                             using (var cmd = new MySqlCommand(queryClass, conn, transaction))
@@ -576,9 +579,10 @@ namespace YourNamespace
                 LoadStudentData(admissionNo);
             }
         }
-        
+
         private void LoadStudentData(string admissionNo)
         {
+
             using (var conn = new MySqlConnection(connStr))
             {
                 conn.Open();
@@ -628,7 +632,7 @@ namespace YourNamespace
                 }
                 string queryClass = @"SELECT * FROM scholar_class sc join scholar_register sr ON sr.registration_number = sc.scholar_registration_number
                                     where sr.scholar_branch_registration_id = @AdmissionNo";
-                    
+
                 using (var cmd = new MySqlCommand(queryClass, conn))
                 {
                     cmd.Parameters.AddWithValue("@AdmissionNo", admissionNo);
@@ -647,11 +651,11 @@ namespace YourNamespace
                     }
                 }
                 string queryAdditional = @"SELECT sav.SAPID, sav.para_value, sao.option_value FROM scholar_additional_values sav
-                LEFT JOIN scholar_additional_val_option svo ON sav.SAVID = svo.SAVID
-                LEFT JOIN scholar_additional_param_option sao ON svo.SAPOID = sao.SAPOID
-                INNER JOIN scholar_class sc ON sav.SCID = sc.scholar_class_id
-                INNER JOIN scholar_register sr ON sc.scholar_registration_number = sr.registration_number
-                WHERE sr.scholar_branch_registration_id = @AdmissionNo";
+                                        LEFT JOIN scholar_additional_val_option svo ON sav.SAVID = svo.SAVID
+                                        LEFT JOIN scholar_additional_param_option sao ON svo.SAPOID = sao.SAPOID
+                                        INNER JOIN scholar_class sc ON sav.SCID = sc.scholar_class_id
+                                        INNER JOIN scholar_register sr ON sc.scholar_registration_number = sr.registration_number
+                                        WHERE sr.scholar_branch_registration_id = @AdmissionNo";
                 using (var cmd = new MySqlCommand(queryAdditional, conn))
                 {
                     cmd.Parameters.AddWithValue("@AdmissionNo", admissionNo);
@@ -686,9 +690,114 @@ namespace YourNamespace
                                 }
                             }
                     }
+
                 }
             }
         }
+
+        protected void btnUpdate_Click(object sender, EventArgs e)
+        {
+            using (var conn = new MySqlConnection(connStr))
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        string queryUpdRegister = @"UPDATE scholar_register SET first_name = @first_name, middle_name = @middle_name, last_name = @last_name, date_of_birth = @date_of_birth, religion = @religion,
+                            date_of_admission = @date_of_admission, father_name = @father_name, mother_name = @mother_name, gaurdian_name = @gaurdian_name, relation_with_student = @relation_with_student,occupation = @occupation, 
+                            address = @address, phone = @phone, mobile = @mobile, email_id = @email_id, nationality = @nationality, caste = @caste,tc_received = @tc_received, 
+                            cc_received = @cc_received, mc_received = @mc_received, marksheet_received = @marksheet_received, class_tenth_roll_no = @class_tenth_roll_no,class_tweelth_roll_no = @class_tweelth_roll_no,
+                            rte = @rte, gender = @gender, caste_category = @caste_category, minority = @minority, aadhar_no = @aadhar_no,BPL_category = @BPL_category, disabled = @disabled, 
+                            yot_adm = @yot_adm WHERE scholar_branch_registration_id = @scholar_branch_registration_id";
+
+                        using (var cmd = new MySqlCommand(queryUpdRegister, conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@first_name", txtFirstName.Text);
+                            cmd.Parameters.AddWithValue("@middle_name", txtMiddleName.Text);
+                            cmd.Parameters.AddWithValue("@last_name", txtLastName.Text);
+                            cmd.Parameters.AddWithValue("@date_of_birth", DateTime.Parse(txtDOB.Text));
+                            cmd.Parameters.AddWithValue("@religion", ddlReligion.SelectedValue);
+                            cmd.Parameters.AddWithValue("@date_of_admission", DateTime.Parse(txtDateAddmission.Text));
+                            cmd.Parameters.AddWithValue("@father_name", txtFatherName.Text);
+                            cmd.Parameters.AddWithValue("@mother_name", txtMotherName.Text);
+                            cmd.Parameters.AddWithValue("@gaurdian_name", txtGuardianName.Text);
+                            cmd.Parameters.AddWithValue("@relation_with_student", txtRelation.Text);
+                            cmd.Parameters.AddWithValue("@occupation", txtOccupation.Text);
+                            cmd.Parameters.AddWithValue("@address", txtAddress.Text);
+                            cmd.Parameters.AddWithValue("@phone", txtContactNo.Text);
+                            cmd.Parameters.AddWithValue("@mobile", txtMobile.Text);
+                            cmd.Parameters.AddWithValue("@email_id", txtEmail.Text);
+                            cmd.Parameters.AddWithValue("@nationality", txtNationality.Text);
+                            cmd.Parameters.AddWithValue("@caste", ddlCaste.SelectedValue);
+                            cmd.Parameters.AddWithValue("@tc_received", ddlTransferCert.SelectedValue);
+                            cmd.Parameters.AddWithValue("@cc_received", ddlCasteCert.SelectedValue);
+                            cmd.Parameters.AddWithValue("@mc_received", ddlMigrationCert.SelectedValue);
+                            cmd.Parameters.AddWithValue("@marksheet_received", ddlMarksheetCert.SelectedValue);
+                            cmd.Parameters.AddWithValue("@class_tenth_roll_no", txtClassX.Text);
+                            cmd.Parameters.AddWithValue("@class_tweelth_roll_no", txtClassXII.Text);
+                            cmd.Parameters.AddWithValue("@rte", chkRTE.Checked);
+                            cmd.Parameters.AddWithValue("@gender", ddlGender.SelectedValue);
+                            cmd.Parameters.AddWithValue("@caste_category", ddlCasteCategory.SelectedValue);
+                            cmd.Parameters.AddWithValue("@minority", chkMinority.Checked);
+                            cmd.Parameters.AddWithValue("@aadhar_no", txtAadhar.Text);
+                            cmd.Parameters.AddWithValue("@BPL_category", chkBPL.Checked);
+                            cmd.Parameters.AddWithValue("@disabled", chkDisabled.Checked);
+                            cmd.Parameters.AddWithValue("@yot_adm", txtYearTerm.Text);
+                            cmd.Parameters.AddWithValue("@scholar_branch_registration_id", txtAdmNo.Text);
+
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        string queryUpdClass = @"UPDATE scholar_class SET class_id = @class_id, admission_date = @admission_date, section = @section, year_of_term = @year_of_term,
+                                                avail_hostel = @avail_hostel, height_in_cms = @height_in_cms, weight_in_kgs = @weight_in_kgs,scholar_roll_number = @scholar_roll_number 
+                                                WHERE scholar_registration_number = (SELECT registration_number FROM scholar_register WHERE scholar_branch_registration_id = @scholar_branch_registration_id
+                                                LIMIT 1)";
+
+                        using (var cmd2 = new MySqlCommand(queryUpdClass, conn, tx))
+                        {
+                            cmd2.Parameters.AddWithValue("@class_id", ddlClass.SelectedValue);
+                            cmd2.Parameters.AddWithValue("@admission_date", DateTime.Parse(txtDateAddmission.Text));
+                            cmd2.Parameters.AddWithValue("@section", ddlSection.SelectedValue);
+                            cmd2.Parameters.AddWithValue("@year_of_term", int.Parse(txtYearTerm.Text));
+                            cmd2.Parameters.AddWithValue("@avail_hostel", chkHostel.Checked ? 1 : 0);
+                            cmd2.Parameters.AddWithValue("@height_in_cms", txtHeight.Text);
+                            cmd2.Parameters.AddWithValue("@weight_in_kgs", txtWeight.Text);
+                            cmd2.Parameters.AddWithValue("@scholar_roll_number", txtRollNo.Text.Trim());
+                            cmd2.Parameters.AddWithValue("@scholar_branch_registration_id", txtAdmNo.Text);
+
+                            try
+                            {
+                                cmd2.ExecuteNonQuery();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.Message);
+                            }
+                        }
+
+                        String addiUpdQuery = "";
+                        using (var cmd3 = new MySqlCommand(addiUpdQuery, conn, tx))
+                        {
+
+                        }
+ 
+                        tx.Commit();
+
+                        Response.Write("Student details updated successfully.");
+                        ClearForm();
+                        DynamicGroupsGeneration();
+                    }
+                    catch (Exception ex)
+                    {
+                        tx.Rollback();
+                        Console.WriteLine(ex.Message);
+                        Response.Write("Error occurred: " + ex.Message);
+                    }
+                }
+            }
+        }
+
 
         private void ClearForm()
         {
@@ -736,22 +845,8 @@ namespace YourNamespace
             chkHostel.Checked = false;
 
             paraform.Controls.Clear();
-          
-        }
 
-        protected void btnDelete_Click(object sender, EventArgs e)
-        {
-            using (var conn = new MySqlConnection(connStr))
-            {
-                conn.Open();
-                using (var tx = conn.BeginTransaction())
-                {
-
-
-                }
-            }
-        }
+        }        
     }
 }
-
 

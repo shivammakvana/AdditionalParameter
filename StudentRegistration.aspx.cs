@@ -709,7 +709,7 @@ namespace YourNamespace
 
         protected void btnUpdate_Click(object sender, EventArgs e)
         {
-            long SCID;
+            
 
             using (var conn = new MySqlConnection(connStr))
             {
@@ -762,7 +762,7 @@ namespace YourNamespace
 
                             cmd.ExecuteNonQuery();
                         }
-
+                        long SCID;
                         string queryUpdClass = @"UPDATE scholar_class SET class_id = @class_id, admission_date = @admission_date, section = @section, year_of_term = @year_of_term,
                                                 avail_hostel = @avail_hostel, height_in_cms = @height_in_cms, weight_in_kgs = @weight_in_kgs,scholar_roll_number = @scholar_roll_number 
                                                 WHERE scholar_registration_number = (SELECT registration_number FROM scholar_register WHERE scholar_branch_registration_id = @scholar_branch_registration_id)";
@@ -777,6 +777,7 @@ namespace YourNamespace
                             cmd2.Parameters.AddWithValue("@weight_in_kgs", txtWeight.Text);
                             cmd2.Parameters.AddWithValue("@scholar_roll_number", txtRollNo.Text.Trim());
                             cmd2.Parameters.AddWithValue("@scholar_branch_registration_id", txtAdmNo.Text);
+                           
                             SCID = cmd2.LastInsertedId;
 
                             try
@@ -788,10 +789,41 @@ namespace YourNamespace
                                 Console.WriteLine(ex.Message);
                             }
                         }
+                        using (var scidCmd = new MySqlCommand(
+                                    @"SELECT scholar_class_id 
+                                      FROM scholar_class 
+                                      WHERE scholar_registration_number = (
+                                          SELECT registration_number 
+                                          FROM scholar_register 
+                                          WHERE scholar_branch_registration_id = @scholar_branch_registration_id
+                                      );", conn, tx))
+                        {
+                            scidCmd.Parameters.AddWithValue("@scholar_branch_registration_id", txtAdmNo.Text);
+
+                            var result = scidCmd.ExecuteScalar();
+                            if (result == null)
+                            {
+                                throw new Exception("No scholar_class found for the given registration.");
+                            }
+
+                            SCID = Convert.ToInt64(result);
+                        }
+
+
+                        using (MySqlCommand checkScidCmd = new MySqlCommand(
+                            "SELECT COUNT(*) FROM scholar_class WHERE scholar_class_id = @SCID", conn, tx))
+                        {
+                            checkScidCmd.Parameters.AddWithValue("@SCID", SCID);
+                            var count = Convert.ToInt32(checkScidCmd.ExecuteScalar());
+                            if (count == SCID)
+                            {
+                                throw new Exception($"Invalid SCID: {SCID}. No such scholar_class exists.");
+                            }
+                        }
 
                         using (MySqlCommand delOptCmd = new MySqlCommand(
                             @"DELETE FROM scholar_additional_val_option 
-                                  WHERE SAVID IN (SELECT SAVID FROM scholar_additional_values WHERE SCID = @SCID);", conn, tx))
+                             WHERE SAVID IN (SELECT SAVID FROM scholar_additional_values WHERE SCID = @SCID);", conn, tx))
                         {
                             delOptCmd.Parameters.AddWithValue("@SCID", SCID);
                             delOptCmd.ExecuteNonQuery();
@@ -831,7 +863,7 @@ namespace YourNamespace
                                 {
                                     using (MySqlCommand valCmd = new MySqlCommand(
                                         @"INSERT INTO scholar_additional_values (SCID, SAPID, para_value) 
-                                             VALUES (@SCID, @SAPID, @value);", conn, tx))
+                                        VALUES (@SCID, @SAPID, @value);", conn, tx))
                                     {
                                         valCmd.Parameters.AddWithValue("@SCID", SCID);
                                         valCmd.Parameters.AddWithValue("@SAPID", sapid);
@@ -839,6 +871,7 @@ namespace YourNamespace
                                         valCmd.ExecuteNonQuery();
                                     }
                                 }
+
                                 else if (ctrl is DropDownList ddl && !string.IsNullOrEmpty(ddl.SelectedValue))
                                 {
                                     long savid = GetOrCreateSAVID(SCID, sapid, conn, tx);
@@ -846,13 +879,14 @@ namespace YourNamespace
 
                                     using (MySqlCommand optCmd = new MySqlCommand(
                                         @"INSERT IGNORE INTO scholar_additional_val_option (SAVID, SAPOID) 
-                                            VALUES (@SAVID, @SAPOID);", conn, tx))
+                                         VALUES (@SAVID, @SAPOID);", conn, tx))
                                     {
                                         optCmd.Parameters.AddWithValue("@SAVID", savid);
                                         optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
                                         optCmd.ExecuteNonQuery();
                                     }
                                 }
+
                                 else if (ctrl is CheckBox chk && chk.Checked)
                                 {
                                     long savid = GetOrCreateSAVID(SCID, sapid, conn, tx);
@@ -860,13 +894,14 @@ namespace YourNamespace
 
                                     using (MySqlCommand optCmd = new MySqlCommand(
                                         @"INSERT IGNORE INTO scholar_additional_val_option (SAVID, SAPOID) 
-                                            VALUES (@SAVID, @SAPOID);", conn, tx))
+                                          VALUES (@SAVID, @SAPOID);", conn, tx))
                                     {
                                         optCmd.Parameters.AddWithValue("@SAVID", savid);
                                         optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
                                         optCmd.ExecuteNonQuery();
                                     }
                                 }
+
                                 else if (ctrl is CheckBoxList chkList)
                                 {
                                     foreach (ListItem item in chkList.Items)
@@ -878,7 +913,7 @@ namespace YourNamespace
 
                                             using (MySqlCommand optCmd = new MySqlCommand(
                                                 @"INSERT IGNORE INTO scholar_additional_val_option (SAVID, SAPOID) 
-                                                     VALUES (@SAVID, @SAPOID);", conn, tx))
+                                                 VALUES (@SAVID, @SAPOID);", conn, tx))
                                             {
                                                 optCmd.Parameters.AddWithValue("@SAVID", savid);
                                                 optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
@@ -889,6 +924,7 @@ namespace YourNamespace
                                 }
                             }
                         }
+
 
                         tx.Commit();
 

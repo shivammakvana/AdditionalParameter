@@ -462,7 +462,7 @@ namespace YourNamespace
 
                                         if (ctrl is TextBox txt && !string.IsNullOrWhiteSpace(txt.Text))
                                         {
-                                            using (MySqlCommand valCmd = new MySqlCommand (
+                                            using (MySqlCommand valCmd = new MySqlCommand(
                                                 @"INSERT INTO scholar_additional_values (SCID, SAPID, para_value) 
                                                  VALUES (@SCID, @SAPID, @value);", conn, transaction))
                                             {
@@ -580,7 +580,7 @@ namespace YourNamespace
             }
         }
 
-        private void LoadStudentData(string admissionNo)             
+        private void LoadStudentData(string admissionNo)
         {
             ClearForm();
             using (var conn = new MySqlConnection(connStr))
@@ -652,7 +652,7 @@ namespace YourNamespace
                         }
                     }
                 }
-                DynamicGroupsGeneration();  
+                DynamicGroupsGeneration();
 
                 string queryAdditional = @"SELECT sav.SAPID, sav.para_value, sao.option_value 
                            FROM scholar_additional_values sav
@@ -705,7 +705,7 @@ namespace YourNamespace
 
             }
         }
-        
+
 
         protected void btnUpdate_Click(object sender, EventArgs e)
         {
@@ -784,15 +784,110 @@ namespace YourNamespace
                                 cmd2.ExecuteNonQuery();
                             }
                             catch (Exception ex)
-                        {
+                            {
                                 Console.WriteLine(ex.Message);
                             }
                         }
-                        string updparamQuery = "SELECT SAPID, SPTID FROM scholar_additional_parameters";
-                        using (MySqlCommand cmd2 = new MySqlCommand(updparamQuery, conn, tx))
+
+                        using (MySqlCommand delOptCmd = new MySqlCommand(
+                            @"DELETE FROM scholar_additional_val_option 
+                                  WHERE SAVID IN (SELECT SAVID FROM scholar_additional_values WHERE SCID = @SCID);", conn, tx))
+                        {
+                            delOptCmd.Parameters.AddWithValue("@SCID", SCID);
+                            delOptCmd.ExecuteNonQuery();
+                        }
+
+                        using (MySqlCommand delValCmd = new MySqlCommand(
+                            @"DELETE FROM scholar_additional_values WHERE SCID = @SCID;", conn, tx))
+                        {
+                            delValCmd.Parameters.AddWithValue("@SCID", SCID);
+                            delValCmd.ExecuteNonQuery();
+                        }
+
+                        string paramQuery = "SELECT SAPID, SPTID FROM scholar_additional_parameters";
+
+                        using (MySqlCommand cmd2 = new MySqlCommand(paramQuery, conn, tx))
                         using (MySqlDataReader reader = cmd2.ExecuteReader())
                         {
-                            
+                            var parameters = new List<(string sapid, string sptid)>();
+                            while (reader.Read())
+                            {
+                                parameters.Add((reader["SAPID"].ToString(), reader["SPTID"].ToString()));
+                            }
+                            reader.Close();
+
+                            foreach (var (sapid, sptid) in parameters)
+                            {
+                                string controlId = "input_" + sapid;
+                                Control ctrl = paraform.FindControl(controlId);
+
+                                if (ctrl == null)
+                                {
+                                    System.Diagnostics.Debug.WriteLine("Control not found for SAPID: " + sapid);
+                                    continue;
+                                }
+
+                                if (ctrl is TextBox txt && !string.IsNullOrWhiteSpace(txt.Text))
+                                {
+                                    using (MySqlCommand valCmd = new MySqlCommand(
+                                        @"INSERT INTO scholar_additional_values (SCID, SAPID, para_value) 
+                                             VALUES (@SCID, @SAPID, @value);", conn, tx))
+                                    {
+                                        valCmd.Parameters.AddWithValue("@SCID", SCID);
+                                        valCmd.Parameters.AddWithValue("@SAPID", sapid);
+                                        valCmd.Parameters.AddWithValue("@value", txt.Text.Trim());
+                                        valCmd.ExecuteNonQuery();
+                                    }
+                                }
+                                else if (ctrl is DropDownList ddl && !string.IsNullOrEmpty(ddl.SelectedValue))
+                                {
+                                    long savid = GetOrCreateSAVID(SCID, sapid, conn, tx);
+                                    long sapoid = GetSAPOID(sapid, ddl.SelectedItem.Text, conn, tx);
+
+                                    using (MySqlCommand optCmd = new MySqlCommand(
+                                        @"INSERT IGNORE INTO scholar_additional_val_option (SAVID, SAPOID) 
+                                            VALUES (@SAVID, @SAPOID);", conn, tx))
+                                    {
+                                        optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                        optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                        optCmd.ExecuteNonQuery();
+                                    }
+                                }
+                                else if (ctrl is CheckBox chk && chk.Checked)
+                                {
+                                    long savid = GetOrCreateSAVID(SCID, sapid, conn, tx);
+                                    long sapoid = GetSAPOID(sapid, "Yes", conn, tx);
+
+                                    using (MySqlCommand optCmd = new MySqlCommand(
+                                        @"INSERT IGNORE INTO scholar_additional_val_option (SAVID, SAPOID) 
+                                            VALUES (@SAVID, @SAPOID);", conn, tx))
+                                    {
+                                        optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                        optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                        optCmd.ExecuteNonQuery();
+                                    }
+                                }
+                                else if (ctrl is CheckBoxList chkList)
+                                {
+                                    foreach (ListItem item in chkList.Items)
+                                    {
+                                        if (item.Selected)
+                                        {
+                                            long savid = GetOrCreateSAVID(SCID, sapid, conn, tx);
+                                            long sapoid = GetSAPOID(sapid, item.Text, conn, tx);
+
+                                            using (MySqlCommand optCmd = new MySqlCommand(
+                                                @"INSERT IGNORE INTO scholar_additional_val_option (SAVID, SAPOID) 
+                                                     VALUES (@SAVID, @SAPOID);", conn, tx))
+                                            {
+                                                optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                                optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                                optCmd.ExecuteNonQuery();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         tx.Commit();
@@ -801,6 +896,7 @@ namespace YourNamespace
                         ClearForm();
                         DynamicGroupsGeneration();
                     }
+
                     catch (Exception ex)
                     {
                         tx.Rollback();
@@ -810,8 +906,6 @@ namespace YourNamespace
                 }
             }
         }
-
-
         private void ClearForm()
         {
 
@@ -863,6 +957,4 @@ namespace YourNamespace
         }        
     }
 }
-
-
 

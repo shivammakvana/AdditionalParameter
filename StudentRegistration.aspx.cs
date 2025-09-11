@@ -788,7 +788,135 @@ namespace YourNamespace
                                 Console.WriteLine(ex.Message);
                             }
                         }
-                      
+                        string updparamQuery = "SELECT SAPID, SPTID FROM scholar_additional_parameters";
+                        using (MySqlCommand cmd2 = new MySqlCommand(updparamQuery, conn, tx))
+                        using (MySqlDataReader reader = cmd2.ExecuteReader())
+                        {
+                            var parameters = new List<(string sapid, string sptid)>();
+                            while (reader.Read())
+                            {
+                                parameters.Add((reader["SAPID"].ToString(), reader["SPTID"].ToString()));
+                            }
+                            reader.Close();
+
+                            foreach (var (sapid, sptid) in parameters)
+                            {
+                                string controlId = "input_" + sapid;
+                                Control ctrl = paraform.FindControl(controlId);
+
+                                if (ctrl == null)
+                                {
+                                    System.Diagnostics.Debug.WriteLine("Control not found for SAPID: " + sapid);
+                                    continue;
+                                }
+
+                                // TextBox
+                                if (ctrl is TextBox)
+                                {
+                                    TextBox txt = (TextBox)ctrl;
+                                    if (!string.IsNullOrWhiteSpace(txt.Text))
+                                    {
+                                        using (MySqlCommand valCmd = new MySqlCommand(
+                                            @"INSERT INTO scholar_additional_values (SCID, SAPID, para_value)
+                                              VALUES (@SCID, @SAPID, @value)
+                                              ON DUPLICATE KEY UPDATE para_value = @value;", conn, tx))
+                                        {
+                                            valCmd.Parameters.AddWithValue("@SCID", SCID);
+                                            valCmd.Parameters.AddWithValue("@SAPID", sapid);
+                                            valCmd.Parameters.AddWithValue("@value", txt.Text.Trim());
+                                            valCmd.ExecuteNonQuery();
+                                        }
+                                    }
+                                }
+
+                                // DropDownList
+                                else if (ctrl is DropDownList)
+                                {
+                                    DropDownList ddl = (DropDownList)ctrl;
+                                    if (!string.IsNullOrEmpty(ddl.SelectedValue))
+                                    {
+                                        long savid = GetOrCreateSAVID(SCID, sapid, conn, tx);
+
+                                        // Delete existing options
+                                        using (MySqlCommand delCmd = new MySqlCommand(
+                                            "DELETE FROM scholar_additional_val_option WHERE SAVID = @SAVID", conn, tx))
+                                        {
+                                            delCmd.Parameters.AddWithValue("@SAVID", savid);
+                                            delCmd.ExecuteNonQuery();
+                                        }
+
+                                        long sapoid = GetSAPOID(sapid, ddl.SelectedItem.Text, conn, tx);
+                                        using (MySqlCommand optCmd = new MySqlCommand(
+                                            "INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, tx))
+                                        {
+                                            optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                            optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                            optCmd.ExecuteNonQuery();
+                                        }
+                                    }
+                                }
+
+                                // CheckBox
+                                else if (ctrl is CheckBox)
+                                {
+                                    CheckBox chk = (CheckBox)ctrl;
+
+                                    long savid = GetOrCreateSAVID(SCID, sapid, conn, tx);
+
+                                    // Delete existing options
+                                    using (MySqlCommand delCmd = new MySqlCommand(
+                                        "DELETE FROM scholar_additional_val_option WHERE SAVID = @SAVID", conn, tx))
+                                    {
+                                        delCmd.Parameters.AddWithValue("@SAVID", savid);
+                                        delCmd.ExecuteNonQuery();
+                                    }
+
+                                    if (chk.Checked)
+                                    {
+                                        long sapoid = GetSAPOID(sapid, "Yes", conn, tx);
+                                        using (MySqlCommand optCmd = new MySqlCommand(
+                                            "INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, tx))
+                                        {
+                                            optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                            optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                            optCmd.ExecuteNonQuery();
+                                        }
+                                    }
+                                }
+
+                                // CheckBoxList
+                                else if (ctrl is CheckBoxList)
+                                {
+                                    CheckBoxList chkList = (CheckBoxList)ctrl;
+
+                                    long savid = GetOrCreateSAVID(SCID, sapid, conn, tx);
+
+                                    // Delete existing options
+                                    using (MySqlCommand delCmd = new MySqlCommand(
+                                        "DELETE FROM scholar_additional_val_option WHERE SAVID = @SAVID", conn, tx))
+                                    {
+                                        delCmd.Parameters.AddWithValue("@SAVID", savid);
+                                        delCmd.ExecuteNonQuery();
+                                    }
+
+                                    foreach (ListItem item in chkList.Items)
+                                    {
+                                        if (item.Selected)
+                                        {
+                                            long sapoid = GetSAPOID(sapid, item.Text, conn, tx);
+                                            using (MySqlCommand optCmd = new MySqlCommand(
+                                                "INSERT INTO scholar_additional_val_option (SAVID, SAPOID) VALUES (@SAVID, @SAPOID);", conn, tx))
+                                            {
+                                                optCmd.Parameters.AddWithValue("@SAVID", savid);
+                                                optCmd.Parameters.AddWithValue("@SAPOID", sapoid);
+                                                optCmd.ExecuteNonQuery();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
 
                         tx.Commit();
 

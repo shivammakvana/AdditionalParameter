@@ -418,9 +418,9 @@ namespace YourNamespace
                             }
 
                             string queryClass = @"INSERT INTO scholar_class(scholar_registration_number, class_id, admission_date,
-                         section, year_of_term, avail_hostel, height_in_cms, weight_in_kgs, scholar_roll_number)
-                        VALUES(@scholar_registration_number, @class_id, @admission_date,
-                         @section, @year_of_term, @avail_hostel, @height_in_cms, @weight_in_kgs, @scholar_roll_number)";
+                                                section, year_of_term, avail_hostel, height_in_cms, weight_in_kgs, scholar_roll_number)
+                                                VALUES(@scholar_registration_number, @class_id, @admission_date,
+                                                @section, @year_of_term, @avail_hostel, @height_in_cms, @weight_in_kgs, @scholar_roll_number)";
 
                             using (var cmd = new MySqlCommand(queryClass, conn, transaction))
                             {
@@ -462,7 +462,7 @@ namespace YourNamespace
 
                                         if (ctrl is TextBox txt && !string.IsNullOrWhiteSpace(txt.Text))
                                         {
-                                            using (MySqlCommand valCmd = new MySqlCommand(
+                                            using (MySqlCommand valCmd = new MySqlCommand (
                                                 @"INSERT INTO scholar_additional_values (SCID, SAPID, para_value) 
                                                  VALUES (@SCID, @SAPID, @value);", conn, transaction))
                                             {
@@ -582,7 +582,7 @@ namespace YourNamespace
 
         private void LoadStudentData(string admissionNo)
         {
-
+            ClearForm();
             using (var conn = new MySqlConnection(connStr))
             {
                 conn.Open();
@@ -595,38 +595,39 @@ namespace YourNamespace
                     {
                         if (reader.Read())
                         {
-                            txtFirstName.Text = reader["first_name"].ToString();
-                            txtMiddleName.Text = reader["middle_name"].ToString();
-                            txtLastName.Text = reader["last_name"].ToString();
-                            txtDOB.Text = Convert.ToDateTime(reader["date_of_birth"]).ToString("yyyy-MM-dd");
-                            ddlReligion.SelectedValue = reader["religion"].ToString();
-                            txtDateAddmission.Text = Convert.ToDateTime(reader["date_of_admission"]).ToString("yyyy-MM-dd");
-                            txtFatherName.Text = reader["father_name"].ToString();
-                            txtMotherName.Text = reader["mother_name"].ToString();
-                            txtGuardianName.Text = reader["gaurdian_name"].ToString();
-                            txtRelation.Text = reader["relation_with_student"].ToString();
-                            txtOccupation.Text = reader["occupation"].ToString();
-                            txtAddress.Text = reader["address"].ToString();
-                            txtContactNo.Text = reader["phone"].ToString();
-                            txtMobile.Text = reader["mobile"].ToString();
-                            txtEmail.Text = reader["email_id"].ToString();
-                            txtNationality.Text = reader["nationality"].ToString();
-                            ddlCaste.SelectedValue = reader["caste"].ToString();
-                            txtClassX.Text = reader["class_tenth_roll_no"].ToString();
-                            txtClassXII.Text = reader["class_tweelth_roll_no"].ToString();
-                            ddlTransferCert.SelectedValue = reader["tc_received"].ToString();
-                            ddlCasteCert.SelectedValue = reader["cc_received"].ToString();
-                            ddlMigrationCert.SelectedValue = reader["mc_received"].ToString();
-                            ddlMarksheetCert.SelectedValue = reader["marksheet_received"].ToString();
-                            chkRTE.Checked = Convert.ToBoolean(reader["rte"]);
-                            ddlGender.SelectedValue = reader["gender"].ToString();
-                            ddlCasteCategory.SelectedValue = reader["caste_category"].ToString();
-                            chkMinority.Checked = Convert.ToBoolean(reader["minority"]);
-                            txtAadhar.Text = reader["aadhar_no"].ToString();
-                            chkBPL.Checked = Convert.ToBoolean(reader["BPL_category"]);
-                            chkDisabled.Checked = Convert.ToBoolean(reader["disabled"]);
-                            txtYearTerm.Text = reader["yot_adm"].ToString();
-                            txtAdmNo.Text = reader["scholar_branch_registration_id"].ToString();
+                            txtFirstName.Text = Convert.IsDBNull(reader["first_name"]) ? string.Empty : reader["first_name"].ToString();
+                            txtMiddleName.Text = reader["middle_name"] != DBNull.Value ? reader["middle_name"].ToString() : "";
+                            txtLastName.Text = reader["last_name"] != DBNull.Value ? reader["last_name"].ToString() : "";
+                            txtDOB.Text = reader["date_of_birth"] != DBNull.Value ? Convert.ToDateTime(reader["date_of_birth"]).ToString("yyyy-MM-dd") : "";
+                            ddlReligion.SelectedValue = reader["religion"] != DBNull.Value ? reader["religion"].ToString() : "";
+                            txtDateAddmission.Text = reader["date_of_admission"] != DBNull.Value ? Convert.ToDateTime(reader["date_of_admission"]).ToString("yyyy-MM-dd") : "";
+                            txtFatherName.Text = reader["father_name"] != DBNull.Value ? reader["father_name"].ToString() : "";
+                            txtMotherName.Text = reader["mother_name"] != DBNull.Value ? reader["mother_name"].ToString() : "";
+                            txtGuardianName.Text = reader["gaurdian_name"] != DBNull.Value ? reader["gaurdian_name"].ToString() : "";
+                            txtRelation.Text = reader["relation_with_student"] != DBNull.Value ? reader["relation_with_student"].ToString() : "";
+                            txtOccupation.Text = reader["occupation"] != DBNull.Value ? reader["occupation"].ToString() : "";
+                            txtAddress.Text = reader["address"] != DBNull.Value ? reader["address"].ToString() : "";
+                            txtContactNo.Text = reader["phone"] != DBNull.Value ? reader["phone"].ToString() : "";
+                            txtMobile.Text = reader["mobile"] != DBNull.Value ? reader["mobile"].ToString() : "";
+                            txtEmail.Text = reader["email_id"] != DBNull.Value ? reader["email_id"].ToString() : "";
+                            txtNationality.Text = reader["nationality"] != DBNull.Value ? reader["nationality"].ToString() : "";
+                            ddlCaste.SelectedValue = reader["caste"] != DBNull.Value ? reader["caste"].ToString() : "";
+                            txtClassX.Text = reader["class_tenth_roll_no"] != DBNull.Value ? reader["class_tenth_roll_no"].ToString() : "";
+                            txtClassXII.Text = reader["class_tweelth_roll_no"] != DBNull.Value ? reader["class_tweelth_roll_no"].ToString() : "";
+                            ddlTransferCert.SelectedValue = reader["tc_received"] != DBNull.Value ? reader["tc_received"].ToString() : "";
+                            ddlCasteCert.SelectedValue = reader["cc_received"] != DBNull.Value ? reader["cc_received"].ToString() : "";
+                            ddlMigrationCert.SelectedValue = reader["mc_received"] != DBNull.Value ? reader["mc_received"].ToString() : "";
+                            ddlMarksheetCert.SelectedValue = reader["marksheet_received"] != DBNull.Value ? reader["marksheet_received"].ToString() : "";
+                            chkRTE.Checked = reader["rte"] != DBNull.Value && Convert.ToBoolean(reader["rte"]);
+                            ddlGender.SelectedValue = reader["gender"] != DBNull.Value ? reader["gender"].ToString() : "";
+                            ddlCasteCategory.SelectedValue = reader["caste_category"] != DBNull.Value ? reader["caste_category"].ToString() : "";
+                            chkMinority.Checked = reader["minority"] != DBNull.Value && Convert.ToBoolean(reader["minority"]);
+                            txtAadhar.Text = reader["aadhar_no"] != DBNull.Value ? reader["aadhar_no"].ToString() : "";
+                            chkBPL.Checked = reader["BPL_category"] != DBNull.Value && Convert.ToBoolean(reader["BPL_category"]);
+                            chkDisabled.Checked = reader["disabled"] != DBNull.Value && Convert.ToBoolean(reader["disabled"]);
+                            txtYearTerm.Text = reader["yot_adm"] != DBNull.Value ? reader["yot_adm"].ToString() : "";
+                            txtAdmNo.Text = reader["scholar_branch_registration_id"] != DBNull.Value ? reader["scholar_branch_registration_id"].ToString() : "";
+
                         }
                     }
                 }
@@ -640,63 +641,76 @@ namespace YourNamespace
                     {
                         if (reader.Read())
                         {
-                            ddlClass.SelectedValue = reader["class_id"].ToString();
-                            ddlSection.SelectedValue = reader["section"].ToString();
-                            txtYearTerm.Text = reader["year_of_term"].ToString();
-                            chkHostel.Checked = Convert.ToBoolean(reader["avail_hostel"]);
-                            txtHeight.Text = reader["height_in_cms"].ToString();
-                            txtWeight.Text = reader["weight_in_kgs"].ToString();
-                            txtRollNo.Text = reader["scholar_roll_number"].ToString();
+                            ddlClass.SelectedValue = reader["class_id"] != DBNull.Value ? reader["class_id"].ToString() : "";
+                            ddlSection.SelectedValue = reader["section"] != DBNull.Value ? reader["section"].ToString() : "";
+                            txtYearTerm.Text = reader["year_of_term"] != DBNull.Value ? reader["year_of_term"].ToString() : "";
+                            chkHostel.Checked = reader["avail_hostel"] != DBNull.Value && Convert.ToBoolean(reader["avail_hostel"]);
+                            txtHeight.Text = reader["height_in_cms"] != DBNull.Value ? reader["height_in_cms"].ToString() : "";
+                            txtWeight.Text = reader["weight_in_kgs"] != DBNull.Value ? reader["weight_in_kgs"].ToString() : "";
+                            txtRollNo.Text = reader["scholar_roll_number"] != DBNull.Value ? reader["scholar_roll_number"].ToString() : "";
+
                         }
                     }
                 }
-                string queryAdditional = @"SELECT sav.SAPID, sav.para_value, sao.option_value FROM scholar_additional_values sav
-                                        LEFT JOIN scholar_additional_val_option svo ON sav.SAVID = svo.SAVID
-                                        LEFT JOIN scholar_additional_param_option sao ON svo.SAPOID = sao.SAPOID
-                                        INNER JOIN scholar_class sc ON sav.SCID = sc.scholar_class_id
-                                        INNER JOIN scholar_register sr ON sc.scholar_registration_number = sr.registration_number
-                                        WHERE sr.scholar_branch_registration_id = @AdmissionNo";
+                DynamicGroupsGeneration();  
+
+                string queryAdditional = @"SELECT sav.SAPID, sav.para_value, sao.option_value 
+                           FROM scholar_additional_values sav
+                           LEFT JOIN scholar_additional_val_option svo ON sav.SAVID = svo.SAVID
+                           LEFT JOIN scholar_additional_param_option sao ON svo.SAPOID = sao.SAPOID
+                           INNER JOIN scholar_class sc ON sav.SCID = sc.scholar_class_id
+                           INNER JOIN scholar_register sr ON sc.scholar_registration_number = sr.registration_number
+                           WHERE sr.scholar_branch_registration_id = @AdmissionNo";
+
                 using (var cmd = new MySqlCommand(queryAdditional, conn))
                 {
                     cmd.Parameters.AddWithValue("@AdmissionNo", admissionNo);
+
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
-                            while (reader.Read())
+                        {
+                            string sapid = reader["SAPID"] != DBNull.Value ? reader["SAPID"].ToString() : "";
+                            string value = reader["para_value"] != DBNull.Value ? reader["para_value"].ToString() : "";
+                            string optionValue = reader["option_value"] != DBNull.Value ? reader["option_value"].ToString() : "";
+
+                            string controlId = "input_" + sapid;
+                            Control ctrl = paraform.FindControl(controlId);
+
+                            if (ctrl is TextBox txt)
                             {
-                                string sapid = reader["SAPID"].ToString();
-                                string value = reader["para_value"].ToString();
-                                string optionValue = reader["option_value"].ToString();
-
-                                string controlId = "input_" + sapid;
-                                Control ctrl = paraform.FindControl(controlId);
-
-                                if (ctrl is TextBox txt)
-                                    txt.Text = value;
-                                else if (ctrl is DropDownList ddl && !string.IsNullOrEmpty(optionValue))
+                                txt.Text = value;
+                            }
+                            else if (ctrl is DropDownList ddl && !string.IsNullOrEmpty(optionValue))
+                            {
+                                if (ddl.Items.FindByValue(optionValue) != null)
+                                    ddl.SelectedValue = optionValue;
+                            }
+                            else if (ctrl is CheckBox chk && optionValue == "Yes")
+                            {
+                                chk.Checked = true;
+                            }
+                            else if (ctrl is CheckBoxList chkList)
+                            {
+                                foreach (ListItem item in chkList.Items)
                                 {
-                                    if (ddl.Items.FindByValue(optionValue) != null)
-                                        ddl.SelectedValue = optionValue;
-                                }
-                                else if (ctrl is CheckBox chk && optionValue == "Yes")
-                                    chk.Checked = true;
-                                else if (ctrl is CheckBoxList chkList)
-                                {
-                                    foreach (ListItem item in chkList.Items)
-                                    {
-                                        if (item.Text == optionValue)
-                                            item.Selected = true;
-                                    }
+                                    if (item.Text == optionValue)
+                                        item.Selected = true;
                                 }
                             }
+                        }
                     }
-
                 }
+
+
             }
         }
+        
 
         protected void btnUpdate_Click(object sender, EventArgs e)
         {
+            long SCID;
+
             using (var conn = new MySqlConnection(connStr))
             {
                 conn.Open();
@@ -743,7 +757,7 @@ namespace YourNamespace
                             cmd.Parameters.AddWithValue("@aadhar_no", txtAadhar.Text);
                             cmd.Parameters.AddWithValue("@BPL_category", chkBPL.Checked);
                             cmd.Parameters.AddWithValue("@disabled", chkDisabled.Checked);
-                            cmd.Parameters.AddWithValue("@yot_adm", txtYearTerm.Text);
+                            cmd.Parameters.AddWithValue("@yot_adm", int.Parse(txtYearTerm.Text));
                             cmd.Parameters.AddWithValue("@scholar_branch_registration_id", txtAdmNo.Text);
 
                             cmd.ExecuteNonQuery();
@@ -751,9 +765,7 @@ namespace YourNamespace
 
                         string queryUpdClass = @"UPDATE scholar_class SET class_id = @class_id, admission_date = @admission_date, section = @section, year_of_term = @year_of_term,
                                                 avail_hostel = @avail_hostel, height_in_cms = @height_in_cms, weight_in_kgs = @weight_in_kgs,scholar_roll_number = @scholar_roll_number 
-                                                WHERE scholar_registration_number = (SELECT registration_number FROM scholar_register WHERE scholar_branch_registration_id = @scholar_branch_registration_id
-                                                LIMIT 1)";
-
+                                                WHERE scholar_registration_number = (SELECT registration_number FROM scholar_register WHERE scholar_branch_registration_id = @scholar_branch_registration_id)";
                         using (var cmd2 = new MySqlCommand(queryUpdClass, conn, tx))
                         {
                             cmd2.Parameters.AddWithValue("@class_id", ddlClass.SelectedValue);
@@ -765,23 +777,19 @@ namespace YourNamespace
                             cmd2.Parameters.AddWithValue("@weight_in_kgs", txtWeight.Text);
                             cmd2.Parameters.AddWithValue("@scholar_roll_number", txtRollNo.Text.Trim());
                             cmd2.Parameters.AddWithValue("@scholar_branch_registration_id", txtAdmNo.Text);
+                            SCID = cmd2.LastInsertedId;
 
                             try
                             {
                                 cmd2.ExecuteNonQuery();
                             }
                             catch (Exception ex)
-                            {
+                        {
                                 Console.WriteLine(ex.Message);
                             }
                         }
+                      
 
-                        String addiUpdQuery = "";
-                        using (var cmd3 = new MySqlCommand(addiUpdQuery, conn, tx))
-                        {
-
-                        }
- 
                         tx.Commit();
 
                         Response.Write("Student details updated successfully.");
@@ -801,6 +809,7 @@ namespace YourNamespace
 
         private void ClearForm()
         {
+
             txtFirstName.Text = "";
             txtMiddleName.Text = "";
             txtLastName.Text = "";
